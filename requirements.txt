@@ -1,21 +1,21 @@
 # Flask and web framework
-Flask==2.3.3
-Flask-CORS==4.0.0
-Werkzeug==2.3.7
+Flask==2.0.3
+Flask-CORS==3.0.10
+Werkzeug==2.0.3
 
 # Machine Learning and Computer Vision
 torch==2.0.1
 torchvision==0.15.2
-numpy==1.24.3
-Pillow==10.0.0
-opencv-python==4.8.0.76
+numpy==1.21.6
+Pillow==8.4.0
+opencv-python==4.5.5.64
 
 # Data handling
-pandas==2.0.3
+pandas==1.5.3
 
 # Utilities
-python-dotenv==1.0.0
-requests==2.31.0
+python-dotenv==0.19.2
+requests==2.28.2
 
 # Development (optional)
 # flask-debugtoolbar==0.13.1

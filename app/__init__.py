@@ -17,7 +17,7 @@ def create_app():
     os.makedirs(app.config['RESULTS_FOLDER'], exist_ok=True)
     
     # Import and register routes
-    from app import routes
-    app.register_blueprint(routes.bp)
+    from app.routes import bp
+    app.register_blueprint(bp)
     
     return app
