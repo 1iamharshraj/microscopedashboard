@@ -1,208 +1,342 @@
-# Microscope Dashboard
+# Microbe Insights 🔬
 
-A Flask-based web application for analyzing microplastic detection and plankton classification using machine learning models. Designed for compatibility with Jetson Nano and ARM-based systems.
+**Advanced microscopy analysis platform for microplastic detection and plankton classification**
 
-## Features
+Powered by AI and optimized for Jetson Nano, Microbe Insights provides a complete solution for analyzing microscopic samples with real-time camera streaming, AI-powered detection, and comprehensive data management.
 
-- **Microplastic Detection**: Upload images and detect microplastics with bounding boxes and confidence scores
-- **Plankton Analysis**: Segment and classify plankton species with visualization overlays
-- **Data Collection**: Store analysis results in SQLite database with export capabilities
-- **Real-time Dashboard**: Bootstrap-based UI with drag-and-drop image upload
-- **Data Visualization**: Charts and statistics for collected data analysis
-- **Jetson Nano Compatible**: Optimized for ARM systems with CPU-only inference
+---
 
-## Project Structure
+## 🌟 Features
+
+### Core Capabilities
+- **Real-time Camera Streaming** - GStreamer-powered camera integration supporting USB, CSI, and IP cameras
+- **AI-Powered Detection** - Dual AI models for microplastic detection and plankton classification
+- **7-Step Workflow** - Guided capture process from sample preparation to results
+- **Interactive Dashboard** - Beautiful, responsive UI built with Bootstrap 5
+- **AI Lab** - Chat interface for AI-assisted analysis guidance
+- **Comprehensive Reporting** - Export results as CSV, PDF, or JSON
+- **Analytics Dashboard** - Visualize trends with Chart.js integration
+- **Cloud Sync** - Optional cloud backup and synchronization
+
+### Analysis Types
+1. **Microplastic Detection**
+   - Identify plastic particles: fibers, fragments, pellets, films
+   - Particle counting and classification
+   - Confidence scoring for each detection
+
+2. **Plankton Classification**
+   - Identify 20+ plankton species
+   - Automated segmentation
+   - ROI extraction and species distribution analysis
+
+---
+
+## 📂 Project Structure
 
 ```
-microscopedashboard/
-├── app/
-│   ├── __init__.py              # Flask app factory
-│   ├── routes.py                # API endpoints and routes
-│   └── models/
-│       ├── microplastic_model.py    # Microplastic detection model
-│       └── plankton_model.py        # Plankton analysis model
-├── templates/
-│   ├── dashboard.html           # Main analysis dashboard
-│   └── data_dashboard.html      # Data collection dashboard
-├── static/                      # CSS, JS, images
-├── uploads/                     # Uploaded images (auto-created)
-├── results/                     # Analysis results (auto-created)
-├── main.py                      # Application entry point
-├── requirements.txt             # Python dependencies
-├── start.sh                     # One-click startup script
-└── README.md                    # This file
+microbe_insights/
+├── app.py                      # Main Flask application
+├── config.py                   # Configuration settings
+├── requirements.txt            # Python dependencies
+├── README.md                   # This file
+│
+├── routes/                     # Route handlers
+│   ├── __init__.py
+│   ├── home.py                # Dashboard
+│   ├── capture.py             # 7-step workflow
+│   ├── chat.py                # AI Lab
+│   ├── reports.py             # Report listing
+│   ├── results.py             # Result details
+│   ├── analytics.py           # Analytics dashboard
+│   ├── settings.py            # Configuration
+│   └── help.py                # Documentation
+│
+├── services/                   # Business logic
+│   ├── __init__.py
+│   ├── camera.py              # GStreamer camera interface
+│   ├── database.py            # SQLite operations
+│   ├── model_microplastics.py # Microplastic detection
+│   └── model_plankton.py      # Plankton classification
+│
+├── templates/                  # Jinja2 templates
+│   ├── base.html              # Base layout with sidebar
+│   ├── home.html              # Dashboard
+│   ├── capture.html           # Capture workflow
+│   ├── chat.html              # AI chat interface
+│   ├── reports.html           # Report listing
+│   ├── results.html           # Result details
+│   ├── analytics.html         # Analytics dashboard
+│   ├── settings.html          # Settings page
+│   ├── help.html              # Help & documentation
+│   ├── 404.html               # Error pages
+│   └── 500.html
+│
+├── static/                     # Static assets
+│   ├── css/
+│   ├── js/
+│   └── icons/
+│
+└── data/                       # Application data
+    ├── reports.db             # SQLite database
+    ├── captures/              # Captured images
+    ├── uploads/               # Uploaded files
+    └── results/               # Analysis results
 ```
 
-## Quick Start
+---
+
+## 🚀 Installation
 
 ### Prerequisites
+- Python 3.6.9+ (optimized for Jetson Nano)
+- OpenCV with GStreamer support
+- SQLite3
 
-- Python 3.7 or higher
-- Linux system (tested on Ubuntu 20.04+ and Jetson Nano)
+### Setup
 
-### Installation
-
-1. **Clone or download the project**
-2. **Make the startup script executable** (Linux/Jetson Nano):
+1. **Clone the repository**
    ```bash
-   chmod +x start.sh
-   ```
-3. **Run the one-click startup script**:
-   ```bash
-   ./start.sh
+   git clone <repository-url>
+   cd microbe_insights
    ```
 
-The script will:
-- Create a virtual environment
-- Install all dependencies
-- Load ML models
-- Start the Flask server
+2. **Create virtual environment** (optional but recommended)
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
 
-### Manual Installation (Alternative)
+3. **Install dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-```bash
-# Create virtual environment
-python3 -m venv venv
-source venv/bin/activate
+4. **Initialize database**
+   ```bash
+   python3 -c "from services.database import init_database; init_database()"
+   ```
 
-# Install dependencies
-pip install -r requirements.txt
+5. **Run the application**
+   ```bash
+   python3 app.py
+   ```
 
-# Create directories
-mkdir -p uploads results static/css static/js
+6. **Access the application**
+   - Open your browser and navigate to: `http://localhost:5000`
+   - Or access from another device: `http://<jetson-ip>:5000`
 
-# Start the application
-python3 main.py
-```
+---
 
-## Usage
+## 💻 Usage
 
-### Web Interface
+### Quick Start Guide
 
-1. **Main Dashboard** (`http://localhost:5000`):
-   - Upload images via drag-and-drop or file selection
-   - Run microplastic detection or plankton analysis
-   - View results with visualizations
+1. **Home Dashboard** (`/`)
+   - View system status and recent analyses
+   - Quick access to all features
+   - System health monitoring
 
-2. **Data Dashboard** (`http://localhost:5000/data`):
-   - View collected data and statistics
-   - Export data to CSV
-   - Analyze trends and distributions
+2. **Capture Workflow** (`/capture`)
+   - Follow the 7-step guided process:
+     1. Sample Preparation
+     2. Camera Setup
+     3. Lighting Configuration
+     4. Sample Information Entry
+     5. Preview & Capture
+     6. AI Analysis
+     7. Results Review
 
-### API Endpoints
+3. **AI Lab** (`/chat`)
+   - Ask questions about your analysis
+   - Get guidance on sample preparation
+   - Upload files for assistance
 
-- `POST /predict/microplastic` - Microplastic detection
-- `POST /predict/plankton` - Plankton analysis
-- `GET /api/stats` - Get analysis statistics
-- `GET /data` - Data collection dashboard
+4. **Reports** (`/reports`)
+   - Browse all analysis reports
+   - Filter by date, location, or researcher
+   - Export individual or bulk data
 
-### Image Upload
+5. **Results** (`/results/<id>`)
+   - View detailed analysis results
+   - Examine ROI images
+   - Export in multiple formats
 
-Supports both file upload and base64 encoded images:
-- **File upload**: `multipart/form-data` with `image` field
-- **Base64**: JSON with `image_data` field
+6. **Analytics** (`/analytics`)
+   - Visualize detection trends
+   - Species distribution charts
+   - Performance metrics
 
-## API Examples
+7. **Settings** (`/settings`)
+   - Configure camera parameters
+   - Select AI model versions
+   - Enable cloud synchronization
+   - System preferences
 
-### Microplastic Detection
+8. **Help** (`/help`)
+   - Comprehensive documentation
+   - Video tutorials
+   - FAQ section
+   - Contact support
 
-```bash
-curl -X POST -F "image=@sample.jpg" http://localhost:5000/predict/microplastic
-```
+---
 
-### Plankton Analysis
+## 🎥 Camera Configuration
 
-```bash
-curl -X POST -F "image=@sample.jpg" http://localhost:5000/predict/plankton
-```
+### Supported Cameras
 
-## Model Information
+1. **USB Cameras**
+   - Most USB webcams and microscope cameras
+   - Auto-detection on `/dev/video0`, `/dev/video1`, etc.
+
+2. **CSI Cameras** (Jetson Nano)
+   - Raspberry Pi Camera Module V2
+   - IMX219-based cameras
+   - Hardware-accelerated capture
+
+3. **IP Cameras**
+   - RTSP stream support
+   - Network cameras
+
+### Camera Settings
+Configure in `/settings`:
+- Resolution (640×480 to 1920×1080)
+- Frame rate (10-60 FPS)
+- Exposure, brightness, contrast
+- White balance
+
+---
+
+## 🤖 AI Models
 
 ### Microplastic Detection Model
-- **Classes**: fiber, fragment, pellet, film, background
-- **Output**: Bounding boxes with confidence scores
-- **Architecture**: Custom CNN with object detection capabilities
+- **Input**: RGB images (224×224)
+- **Output**: Bounding boxes and classifications
+- **Classes**: Fiber, Fragment, Pellet, Film
+- **Confidence threshold**: Adjustable (default 0.7)
 
-### Plankton Analysis Model
-- **Species**: 20 different plankton species
-- **Output**: Segmentation mask + species classification
-- **Architecture**: U-Net for segmentation + CNN for classification
+### Plankton Classification Model
+- **Input**: RGB images (224×224)
+- **Output**: Species classification + segmentation
+- **Classes**: 20+ plankton species
+- **Features**: ROI extraction, species counting
 
-## Data Storage
+*Note: Current implementation includes placeholder models for demonstration. Replace with trained models for production use.*
 
-- **Database**: SQLite (`results/database.db`)
-- **Tables**: 
-  - `microplastic_results`: Detection results with bounding boxes
-  - `plankton_results`: Classification results with species and confidence
-- **Export**: CSV export functionality available
+---
 
-## System Requirements
+## 📊 Database Schema
 
-### Minimum Requirements
-- **CPU**: ARM Cortex-A57 or x86_64
-- **RAM**: 4GB (Jetson Nano compatible)
-- **Storage**: 2GB free space
-- **OS**: Linux (Ubuntu 18.04+)
+### Reports Table
+```sql
+CREATE TABLE reports (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    slide_name TEXT NOT NULL,
+    timestamp TEXT NOT NULL,
+    location TEXT,
+    user TEXT,
+    microplastics_present BOOLEAN,
+    particle_count INTEGER,
+    confidence REAL,
+    plankton_summary TEXT,
+    image_path TEXT
+);
+```
 
-### Recommended for Jetson Nano
-- **RAM**: 8GB (for better performance)
-- **Storage**: 16GB+ (for model storage and data)
-- **Power**: 5V/4A power supply
+---
 
-## Configuration
+## 🔧 Configuration
 
-### Environment Variables
+Edit `config.py` to customize:
 
-- `FLASK_HOST`: Server host (default: 0.0.0.0)
-- `FLASK_PORT`: Server port (default: 5000)
-- `FLASK_DEBUG`: Debug mode (default: False)
+```python
+# Database
+DATABASE_PATH = 'data/reports.db'
 
-### Model Configuration
+# Camera defaults
+DEFAULT_CAMERA_ID = 0
+DEFAULT_RESOLUTION = (1280, 720)
+DEFAULT_FPS = 30
 
-Models are configured to use CPU inference for maximum compatibility:
-- PyTorch CPU-only mode
-- No CUDA dependencies required
-- Optimized for ARM processors
+# AI Models
+MICROPLASTIC_MODEL_PATH = 'models/microplastic_model.pth'
+PLANKTON_MODEL_PATH = 'models/plankton_model.pth'
 
-## Troubleshooting
+# Cloud sync
+CLOUD_SYNC_ENABLED = False
+```
 
-### Common Issues
+---
 
-1. **Import Errors**: Ensure all dependencies are installed in the virtual environment
-2. **Memory Issues**: Close other applications on Jetson Nano
-3. **Port Conflicts**: Change `FLASK_PORT` environment variable
-4. **Model Loading**: Check available memory (4GB minimum recommended)
+## 🌐 API Endpoints
 
-### Performance Optimization
+### Camera Control
+- `POST /camera/start` - Start camera streaming
+- `POST /camera/stop` - Stop camera streaming
+- `POST /camera/snapshot` - Capture snapshot
 
-- Use SSD storage for better I/O performance
-- Ensure adequate cooling on Jetson Nano
-- Close unnecessary background processes
-- Consider using a swap file for memory management
+### Analysis
+- `POST /capture/api/process` - Run analysis
+- `GET /analytics/api/stats` - Get statistics
+- `GET /reports/api/search` - Search reports
 
-## Development
+### Data
+- `GET /results/<id>` - Get report details
+- `GET /results/<id>/export/csv` - Export as CSV
+- `GET /results/<id>/export/pdf` - Export as PDF
 
-### Adding New Models
+---
 
-1. Create model class in `app/models/`
-2. Follow the existing pattern for `predict()` method
-3. Update routes to include new endpoint
-4. Add UI elements in templates
+## 🛠️ Development
 
-### Extending the API
+### Running in Debug Mode
+```bash
+export FLASK_ENV=development
+export FLASK_DEBUG=1
+python3 app.py
+```
 
-1. Add new routes in `app/routes.py`
-2. Update database schema if needed
-3. Add corresponding frontend functionality
+### Adding New Features
+1. Create route in `routes/`
+2. Add service logic in `services/`
+3. Create template in `templates/`
+4. Register blueprint in `app.py`
 
-## License
+---
+
+## 📝 License
 
 This project is provided as-is for educational and research purposes.
 
-## Support
+---
 
-For issues and questions:
-1. Check the logs in `app.log`
-2. Verify system requirements
-3. Test with sample images
-4. Check available memory and storage
+## 👥 Support
+
+- **Documentation**: Navigate to `/help` in the application
+- **AI Assistant**: Use the AI Lab at `/chat`
+- **Email**: support@microbeinsights.com
+- **Issues**: Report bugs via the feedback form
+
+---
+
+## 🎯 Roadmap
+
+- [ ] Integration with real AI models
+- [ ] Multi-language support
+- [ ] Mobile app
+- [ ] Advanced image preprocessing
+- [ ] Batch analysis
+- [ ] Team collaboration features
+- [ ] API for external integrations
+
+---
+
+## 🙏 Acknowledgments
+
+- Built with Flask, Bootstrap 5, and Chart.js
+- Optimized for NVIDIA Jetson Nano
+- GStreamer for camera streaming
+- SQLite for data management
+
+---
+
+**Microbe Insights** - Advancing microscopy analysis through AI 🔬✨

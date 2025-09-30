@@ -1,0 +1,852 @@
+{% extends "base.html" %}
+
+{% block title %}Capture - Microbe Insights{% endblock %}
+{% block page_title %}Sample Capture{% endblock %}
+
+{% block extra_css %}
+<style>
+    .step-indicator {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+    
+    .step {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        flex: 1;
+        position: relative;
+    }
+    
+    .step:not(:last-child)::after {
+        content: '';
+        position: absolute;
+        top: 20px;
+        left: 60%;
+        right: -40%;
+        height: 2px;
+        background: #dee2e6;
+        z-index: 1;
+    }
+    
+    .step.active::after,
+    .step.completed::after {
+        background: #007bff;
+    }
+    
+    .step-circle {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #dee2e6;
+        color: #6c757d;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        margin-bottom: 8px;
+        position: relative;
+        z-index: 2;
+    }
+    
+    .step.active .step-circle {
+        background: #007bff;
+        color: white;
+    }
+    
+    .step.completed .step-circle {
+        background: #28a745;
+        color: white;
+    }
+    
+    .step.completed .step-circle::before {
+        content: '\f00c';
+        font-family: 'Font Awesome 5 Free';
+        font-weight: 900;
+    }
+    
+    .step-label {
+        font-size: 0.9rem;
+        text-align: center;
+        color: #6c757d;
+    }
+    
+    .step.active .step-label {
+        color: #007bff;
+        font-weight: 600;
+    }
+    
+    .step.completed .step-label {
+        color: #28a745;
+        font-weight: 600;
+    }
+    
+    .workflow-content {
+        min-height: 400px;
+    }
+    
+    .preview-image {
+        max-width: 100%;
+        height: auto;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    
+    .progress-bar-custom {
+        height: 20px;
+        border-radius: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Step Indicator -->
+<div class="step-indicator">
+    <div class="step {% if not current_step or current_step == 1 %}active{% elif current_step > 1 %}completed{% endif %}" data-step="1">
+        <div class="step-circle">1</div>
+        <div class="step-label">Preparation</div>
+    </div>
+    <div class="step {% if current_step == 2 %}active{% elif current_step > 2 %}completed{% endif %}" data-step="2">
+        <div class="step-circle">2</div>
+        <div class="step-label">Camera Setup</div>
+    </div>
+    <div class="step {% if current_step == 3 %}active{% elif current_step > 3 %}completed{% endif %}" data-step="3">
+        <div class="step-circle">3</div>
+        <div class="step-label">Lighting</div>
+    </div>
+    <div class="step {% if current_step == 4 %}active{% elif current_step > 4 %}completed{% endif %}" data-step="4">
+        <div class="step-circle">4</div>
+        <div class="step-label">Sample Info</div>
+    </div>
+    <div class="step {% if current_step == 5 %}active{% elif current_step > 5 %}completed{% endif %}" data-step="5">
+        <div class="step-circle">5</div>
+        <div class="step-label">Preview</div>
+    </div>
+    <div class="step {% if current_step == 6 %}active{% elif current_step > 6 %}completed{% endif %}" data-step="6">
+        <div class="step-circle">6</div>
+        <div class="step-label">Analysis</div>
+    </div>
+    <div class="step {% if current_step == 7 %}active{% endif %}" data-step="7">
+        <div class="step-circle">7</div>
+        <div class="step-label">Results</div>
+    </div>
+</div>
+
+<!-- Workflow Content -->
+<div class="workflow-content">
+    <!-- Step 1: Preparation -->
+    <div class="step-content" id="step1" {% if current_step != 1 %}style="display: none;"{% endif %}>
+        <div class="row">
+            <div class="col-md-8">
+                <h4><i class="fas fa-vial me-2"></i>Sample Preparation</h4>
+                <div class="alert alert-info">
+                    <h6><i class="fas fa-info-circle me-2"></i>Preparation Checklist</h6>
+                    <ul class="mb-0">
+                        <li>Ensure sample slide is properly mounted</li>
+                        <li>Clean the slide surface to remove dust and debris</li>
+                        <li>Check that the sample is evenly distributed</li>
+                        <li>Verify appropriate magnification for your sample type</li>
+                    </ul>
+                </div>
+                
+                <div class="card">
+                    <div class="card-body">
+                        <h6>Sample Types Supported:</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <ul>
+                                    <li>Water samples</li>
+                                    <li>Sediment samples</li>
+                                    <li>Biological specimens</li>
+                                    <li>Environmental samples</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <ul>
+                                    <li>Microplastic filters</li>
+                                    <li>Plankton nets</li>
+                                    <li>Microscopic slides</li>
+                                    <li>Culture samples</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-microscope fa-4x text-primary mb-3"></i>
+                        <h6>Ready to Proceed?</h6>
+                        <p class="text-muted">Make sure your sample is properly prepared before moving to camera setup.</p>
+                        <button class="btn btn-primary" onclick="nextStep()">
+                            Continue to Camera Setup
+                            <i class="fas fa-arrow-right ms-2"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Step 2: Camera Setup -->
+    <div class="step-content" id="step2" {% if current_step != 2 %}style="display: none;"{% endif %}>
+        <div class="row">
+            <div class="col-md-8">
+                <h4><i class="fas fa-camera me-2"></i>Camera Setup</h4>
+                <div class="card">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Camera Configuration</h6>
+                                <div class="mb-3">
+                                    <label class="form-label">Camera Type</label>
+                                    <select class="form-select" id="cameraType">
+                                        <option value="usb">USB Camera</option>
+                                        <option value="csi">CSI Camera (Jetson)</option>
+                                        <option value="ip">IP Camera</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Camera ID</label>
+                                    <input type="number" class="form-control" id="cameraId" value="0" min="0">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Resolution Settings</h6>
+                                <div class="mb-3">
+                                    <label class="form-label">Width</label>
+                                    <input type="number" class="form-control" id="cameraWidth" value="1280">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Height</label>
+                                    <input type="number" class="form-control" id="cameraHeight" value="720">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">FPS</label>
+                                    <input type="number" class="form-control" id="cameraFps" value="30">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-primary" onclick="startCamera()">
+                                <i class="fas fa-play me-2"></i>
+                                Start Camera
+                            </button>
+                            <button class="btn btn-secondary" onclick="stopCamera()">
+                                <i class="fas fa-stop me-2"></i>
+                                Stop Camera
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h6>Camera Preview</h6>
+                        <div id="cameraPreview" class="text-center p-4 border rounded" style="min-height: 200px;">
+                            <i class="fas fa-video fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">Camera preview will appear here</p>
+                        </div>
+                        <div class="mt-3">
+                            <button class="btn btn-success w-100" onclick="nextStep()" id="nextToLighting" disabled>
+                                Continue to Lighting
+                                <i class="fas fa-arrow-right ms-2"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Step 3: Lighting -->
+    <div class="step-content" id="step3" {% if current_step != 3 %}style="display: none;"{% endif %}>
+        <div class="row">
+            <div class="col-md-8">
+                <h4><i class="fas fa-lightbulb me-2"></i>Lighting Configuration</h4>
+                <div class="card">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Brightness Control</h6>
+                                <div class="mb-3">
+                                    <label class="form-label">Brightness: <span id="brightnessValue">50</span>%</label>
+                                    <input type="range" class="form-range" id="brightnessSlider" min="0" max="100" value="50">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Contrast: <span id="contrastValue">50</span>%</label>
+                                    <input type="range" class="form-range" id="contrastSlider" min="0" max="100" value="50">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Exposure Settings</h6>
+                                <div class="mb-3">
+                                    <label class="form-label">Exposure: <span id="exposureValue">0</span></label>
+                                    <input type="range" class="form-range" id="exposureSlider" min="-10" max="10" value="0">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">White Balance</label>
+                                    <select class="form-select" id="whiteBalance">
+                                        <option value="auto">Auto</option>
+                                        <option value="manual">Manual</option>
+                                        <option value="daylight">Daylight</option>
+                                        <option value="tungsten">Tungsten</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Tip:</strong> Adjust lighting to ensure optimal contrast between your sample and background. 
+                            Avoid overexposure which can wash out important details.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h6>Lighting Preview</h6>
+                        <div class="text-center mb-3">
+                            <img id="lightingPreview" src="" alt="Lighting Preview" class="img-fluid rounded" style="display: none;">
+                            <div id="lightingPlaceholder" class="p-4 border rounded">
+                                <i class="fas fa-lightbulb fa-3x text-muted mb-3"></i>
+                                <p class="text-muted">Adjust settings to see preview</p>
+                            </div>
+                        </div>
+                        <button class="btn btn-success w-100" onclick="nextStep()">
+                            Continue to Sample Info
+                            <i class="fas fa-arrow-right ms-2"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Step 4: Sample Information -->
+    <div class="step-content" id="step4" {% if current_step != 4 %}style="display: none;"{% endif %}>
+        <div class="row">
+            <div class="col-md-8">
+                <h4><i class="fas fa-info-circle me-2"></i>Sample Information</h4>
+                <div class="card">
+                    <div class="card-body">
+                        <form id="sampleForm">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="slideName" class="form-label">Slide Name *</label>
+                                        <input type="text" class="form-control" id="slideName" required>
+                                        <div class="form-text">Unique identifier for this sample</div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="location" class="form-label">Location *</label>
+                                        <input type="text" class="form-control" id="location" required>
+                                        <div class="form-text">Where was this sample collected?</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="user" class="form-label">Researcher *</label>
+                                        <input type="text" class="form-control" id="user" required>
+                                        <div class="form-text">Name of the person conducting the analysis</div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="sampleType" class="form-label">Sample Type</label>
+                                        <select class="form-select" id="sampleType">
+                                            <option value="water">Water Sample</option>
+                                            <option value="sediment">Sediment</option>
+                                            <option value="biological">Biological Specimen</option>
+                                            <option value="environmental">Environmental</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="notes" class="form-label">Notes</label>
+                                <textarea class="form-control" id="notes" rows="3" placeholder="Additional observations or notes about this sample..."></textarea>
+                            </div>
+                        </form>
+                        
+                        <div id="formErrors" class="alert alert-danger" style="display: none;"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h6>Form Validation</h6>
+                        <div id="validationStatus" class="text-center">
+                            <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                            <p class="text-muted">Please fill in all required fields</p>
+                        </div>
+                        <button class="btn btn-success w-100" onclick="validateAndNext()">
+                            Validate & Continue
+                            <i class="fas fa-arrow-right ms-2"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Step 5: Preview & Capture -->
+    <div class="step-content" id="step5" {% if current_step != 5 %}style="display: none;"{% endif %}>
+        <div class="row">
+            <div class="col-md-8">
+                <h4><i class="fas fa-eye me-2"></i>Preview & Capture</h4>
+                <div class="card">
+                    <div class="card-body">
+                        <div class="text-center">
+                            <img id="livePreview" src="" alt="Live Preview" class="img-fluid rounded mb-3" style="display: none;">
+                            <div id="previewPlaceholder" class="p-5 border rounded">
+                                <i class="fas fa-video fa-3x text-muted mb-3"></i>
+                                <p class="text-muted">Live preview will appear here</p>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-center gap-3 mt-4">
+                            <button class="btn btn-primary btn-lg" onclick="captureImage()">
+                                <i class="fas fa-camera me-2"></i>
+                                Capture Image
+                            </button>
+                            <button class="btn btn-secondary btn-lg" onclick="refreshPreview()">
+                                <i class="fas fa-sync me-2"></i>
+                                Refresh
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h6>Sample Summary</h6>
+                        <div id="sampleSummary">
+                            <p><strong>Slide:</strong> <span id="summarySlide">-</span></p>
+                            <p><strong>Location:</strong> <span id="summaryLocation">-</span></p>
+                            <p><strong>Researcher:</strong> <span id="summaryUser">-</span></p>
+                            <p><strong>Type:</strong> <span id="summaryType">-</span></p>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <button class="btn btn-success w-100" onclick="nextStep()" id="nextToAnalysis" disabled>
+                                Start Analysis
+                                <i class="fas fa-arrow-right ms-2"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Step 6: Analysis -->
+    <div class="step-content" id="step6" {% if current_step != 6 %}style="display: none;"{% endif %}>
+        <div class="row">
+            <div class="col-md-8">
+                <h4><i class="fas fa-brain me-2"></i>AI Analysis in Progress</h4>
+                <div class="card">
+                    <div class="card-body">
+                        <div class="text-center">
+                            <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <h5>Processing Your Sample</h5>
+                            <p class="text-muted">Running microplastic detection and plankton classification...</p>
+                        </div>
+                        
+                        <div class="progress mb-3">
+                            <div class="progress-bar progress-bar-custom" id="analysisProgress" role="progressbar" style="width: 0%"></div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="d-flex justify-content-between">
+                                    <span>Microplastic Detection</span>
+                                    <span id="microplasticStatus">Pending</span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="d-flex justify-content-between">
+                                    <span>Plankton Classification</span>
+                                    <span id="planktonStatus">Pending</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="analysisResults" style="display: none;">
+                            <hr>
+                            <h6>Analysis Complete!</h6>
+                            <div class="alert alert-success">
+                                <i class="fas fa-check-circle me-2"></i>
+                                Both microplastic detection and plankton classification have completed successfully.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h6>Analysis Status</h6>
+                        <div id="statusDetails">
+                            <div class="mb-3">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-vial text-primary me-2"></i>
+                                    <span>Microplastic Detection</span>
+                                </div>
+                                <small class="text-muted">Analyzing for plastic particles...</small>
+                            </div>
+                            <div class="mb-3">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-fish text-info me-2"></i>
+                                    <span>Plankton Classification</span>
+                                </div>
+                                <small class="text-muted">Identifying species...</small>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <button class="btn btn-success w-100" onclick="nextStep()" id="nextToResults" disabled>
+                                View Results
+                                <i class="fas fa-arrow-right ms-2"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Step 7: Results -->
+    <div class="step-content" id="step7" {% if current_step != 7 %}style="display: none;"{% endif %}>
+        <div class="row">
+            <div class="col-md-12">
+                <h4><i class="fas fa-chart-line me-2"></i>Analysis Results</h4>
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <strong>Analysis Complete!</strong> Your sample has been successfully analyzed. 
+                    <a href="#" id="viewFullResults" class="alert-link">View detailed results</a>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-vial me-2"></i>
+                                    Microplastic Detection Results
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div id="microplasticResults">
+                                    <!-- Results will be populated here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-fish me-2"></i>
+                                    Plankton Classification Results
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div id="planktonResults">
+                                    <!-- Results will be populated here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-center mt-4">
+                    <button class="btn btn-primary btn-lg me-3" onclick="exportResults()">
+                        <i class="fas fa-download me-2"></i>
+                        Export Results
+                    </button>
+                    <button class="btn btn-success btn-lg" onclick="startNewAnalysis()">
+                        <i class="fas fa-plus me-2"></i>
+                        Start New Analysis
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentStep = {{ current_step or 1 }};
+let capturedImage = null;
+let analysisResults = null;
+
+// Step navigation
+function nextStep() {
+    if (currentStep < 7) {
+        currentStep++;
+        showStep(currentStep);
+        updateStepIndicator();
+    }
+}
+
+function prevStep() {
+    if (currentStep > 1) {
+        currentStep--;
+        showStep(currentStep);
+        updateStepIndicator();
+    }
+}
+
+function showStep(step) {
+    // Hide all steps
+    document.querySelectorAll('.step-content').forEach(content => {
+        content.style.display = 'none';
+    });
+    
+    // Show current step
+    document.getElementById('step' + step).style.display = 'block';
+}
+
+function updateStepIndicator() {
+    document.querySelectorAll('.step').forEach((stepEl, index) => {
+        const stepNumber = index + 1;
+        stepEl.classList.remove('active', 'completed');
+        
+        if (stepNumber === currentStep) {
+            stepEl.classList.add('active');
+        } else if (stepNumber < currentStep) {
+            stepEl.classList.add('completed');
+        }
+    });
+}
+
+// Camera functions
+function startCamera() {
+    const cameraType = document.getElementById('cameraType').value;
+    const cameraId = parseInt(document.getElementById('cameraId').value);
+    const width = parseInt(document.getElementById('cameraWidth').value);
+    const height = parseInt(document.getElementById('cameraHeight').value);
+    const fps = parseInt(document.getElementById('cameraFps').value);
+    
+    fetch('/camera/start', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            camera_id: cameraId,
+            camera_type: cameraType,
+            width: width,
+            height: height,
+            fps: fps
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Start live preview
+            document.getElementById('cameraPreview').innerHTML = `
+                <img src="/video_feed" alt="Camera Preview" class="img-fluid rounded">
+            `;
+            document.getElementById('nextToLighting').disabled = false;
+        } else {
+            alert('Failed to start camera: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Camera start error:', error);
+        alert('Failed to start camera: ' + error.message);
+    });
+}
+
+function stopCamera() {
+    fetch('/camera/stop', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({})
+    })
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('cameraPreview').innerHTML = `
+            <i class="fas fa-video fa-3x text-muted mb-3"></i>
+            <p class="text-muted">Camera preview will appear here</p>
+        `;
+        document.getElementById('nextToLighting').disabled = true;
+    });
+}
+
+// Lighting controls
+document.getElementById('brightnessSlider').addEventListener('input', function() {
+    document.getElementById('brightnessValue').textContent = this.value;
+});
+
+document.getElementById('contrastSlider').addEventListener('input', function() {
+    document.getElementById('contrastValue').textContent = this.value;
+});
+
+document.getElementById('exposureSlider').addEventListener('input', function() {
+    document.getElementById('exposureValue').textContent = this.value;
+});
+
+// Form validation
+function validateAndNext() {
+    const slideName = document.getElementById('slideName').value;
+    const location = document.getElementById('location').value;
+    const user = document.getElementById('user').value;
+    
+    const errors = [];
+    if (!slideName) errors.push('Slide name is required');
+    if (!location) errors.push('Location is required');
+    if (!user) errors.push('Researcher name is required');
+    
+    const errorDiv = document.getElementById('formErrors');
+    const statusDiv = document.getElementById('validationStatus');
+    
+    if (errors.length > 0) {
+        errorDiv.innerHTML = '<ul><li>' + errors.join('</li><li>') + '</li></ul>';
+        errorDiv.style.display = 'block';
+        statusDiv.innerHTML = `
+            <i class="fas fa-exclamation-triangle fa-3x text-danger mb-3"></i>
+            <p class="text-danger">Please fix the errors above</p>
+        `;
+    } else {
+        errorDiv.style.display = 'none';
+        statusDiv.innerHTML = `
+            <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+            <p class="text-success">Form is valid!</p>
+        `;
+        
+        // Update sample summary
+        document.getElementById('summarySlide').textContent = slideName;
+        document.getElementById('summaryLocation').textContent = location;
+        document.getElementById('summaryUser').textContent = user;
+        document.getElementById('summaryType').textContent = document.getElementById('sampleType').options[document.getElementById('sampleType').selectedIndex].text;
+        
+        nextStep();
+    }
+}
+
+// Preview and capture
+function captureImage() {
+    fetch('/camera/snapshot', {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            capturedImage = data.filename;
+            document.getElementById('livePreview').src = '/captures/' + data.filename;
+            document.getElementById('livePreview').style.display = 'block';
+            document.getElementById('previewPlaceholder').style.display = 'none';
+            document.getElementById('nextToAnalysis').disabled = false;
+        } else {
+            alert('Failed to capture image: ' + (data.error || 'Unknown error'));
+        }
+    });
+}
+
+function refreshPreview() {
+    document.getElementById('livePreview').src = '/video_feed?' + new Date().getTime();
+}
+
+// Analysis
+function startAnalysis() {
+    const formData = new FormData();
+    formData.append('slide_name', document.getElementById('slideName').value);
+    formData.append('location', document.getElementById('location').value);
+    formData.append('user', document.getElementById('user').value);
+    
+    // Simulate analysis progress
+    let progress = 0;
+    const progressBar = document.getElementById('analysisProgress');
+    const microplasticStatus = document.getElementById('microplasticStatus');
+    const planktonStatus = document.getElementById('planktonStatus');
+    
+    const interval = setInterval(() => {
+        progress += Math.random() * 15;
+        if (progress > 100) progress = 100;
+        
+        progressBar.style.width = progress + '%';
+        
+        if (progress > 30) {
+            microplasticStatus.textContent = 'Complete';
+            microplasticStatus.className = 'text-success';
+        }
+        
+        if (progress > 70) {
+            planktonStatus.textContent = 'Complete';
+            planktonStatus.className = 'text-success';
+        }
+        
+        if (progress >= 100) {
+            clearInterval(interval);
+            document.getElementById('analysisResults').style.display = 'block';
+            document.getElementById('nextToResults').disabled = false;
+            
+            // Generate mock results
+            generateMockResults();
+        }
+    }, 500);
+}
+
+function generateMockResults() {
+    // Mock microplastic results
+    const microplasticResults = `
+        <div class="alert alert-success">
+            <strong>Microplastics Detected!</strong>
+        </div>
+        <p><strong>Count:</strong> 12 particles</p>
+        <p><strong>Confidence:</strong> 89.5%</p>
+        <p><strong>Types:</strong> Fibers (8), Fragments (4)</p>
+    `;
+    
+    // Mock plankton results
+    const planktonResults = `
+        <div class="alert alert-info">
+            <strong>Species Identified:</strong>
+        </div>
+        <p><strong>Diatoms:</strong> 45 individuals</p>
+        <p><strong>Copepods:</strong> 23 individuals</p>
+        <p><strong>Dinoflagellates:</strong> 12 individuals</p>
+    `;
+    
+    document.getElementById('microplasticResults').innerHTML = microplasticResults;
+    document.getElementById('planktonResults').innerHTML = planktonResults;
+}
+
+function exportResults() {
+    alert('Export functionality would be implemented here');
+}
+
+function startNewAnalysis() {
+    currentStep = 1;
+    showStep(currentStep);
+    updateStepIndicator();
+    
+    // Reset form
+    document.getElementById('sampleForm').reset();
+    capturedImage = null;
+    analysisResults = null;
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    showStep(currentStep);
+    updateStepIndicator();
+    
+    // Auto-start analysis when reaching step 6
+    if (currentStep === 6) {
+        startAnalysis();
+    }
+});
+</script>
+{% endblock %}

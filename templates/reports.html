@@ -1,0 +1,406 @@
+{% extends "base.html" %}
+
+{% block title %}Reports - Microbe Insights{% endblock %}
+{% block page_title %}Analysis Reports{% endblock %}
+
+{% block extra_css %}
+<style>
+    .filter-card {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+    }
+    
+    .report-card {
+        transition: all 0.3s;
+        border-left: 4px solid transparent;
+    }
+    
+    .report-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    
+    .report-card.microplastic-detected {
+        border-left-color: #dc3545;
+    }
+    
+    .report-card.plankton-analyzed {
+        border-left-color: #17a2b8;
+    }
+    
+    .report-card.both-analyzed {
+        border-left-color: #28a745;
+    }
+    
+    .status-badge {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+    
+    .pagination-wrapper {
+        display: flex;
+        justify-content: between;
+        align-items: center;
+    }
+    
+    .export-options {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    
+    .date-range {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card filter-card">
+            <div class="card-body">
+                <h5 class="mb-3">
+                    <i class="fas fa-filter me-2"></i>
+                    Filter Reports
+                </h5>
+                <form method="GET" action="{{ url_for('reports.reports') }}" id="filterForm">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="search" class="form-label">Search</label>
+                                <input type="text" class="form-control" id="search" name="search" 
+                                       value="{{ filters.search }}" placeholder="Search by slide name, location, or user...">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="date_from" class="form-label">From Date</label>
+                                <input type="date" class="form-control" id="date_from" name="date_from" 
+                                       value="{{ filters.date_from }}">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="date_to" class="form-label">To Date</label>
+                                <input type="date" class="form-control" id="date_to" name="date_to" 
+                                       value="{{ filters.date_to }}">
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="mb-3">
+                                <label class="form-label">&nbsp;</label>
+                                <div class="d-grid">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-search me-1"></i>
+                                        Filter
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="checkbox" id="microplastic_only" name="microplastic_only">
+                                <label class="form-check-label" for="microplastic_only">
+                                    Microplastic Detections Only
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="export-options">
+                                <button type="button" class="btn btn-outline-success btn-sm" onclick="exportAll()">
+                                    <i class="fas fa-download me-1"></i>
+                                    Export All
+                                </button>
+                                <button type="button" class="btn btn-outline-info btn-sm" onclick="exportFiltered()">
+                                    <i class="fas fa-filter me-1"></i>
+                                    Export Filtered
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5>
+                <i class="fas fa-file-alt me-2"></i>
+                Analysis Reports
+                <span class="badge bg-secondary ms-2">{{ pagination.total_count }}</span>
+            </h5>
+            
+            <div class="dropdown">
+                <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    <i class="fas fa-sort me-1"></i>
+                    Sort By
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="?sort=timestamp&order=desc">Newest First</a></li>
+                    <li><a class="dropdown-item" href="?sort=timestamp&order=asc">Oldest First</a></li>
+                    <li><a class="dropdown-item" href="?sort=slide_name&order=asc">Slide Name A-Z</a></li>
+                    <li><a class="dropdown-item" href="?sort=slide_name&order=desc">Slide Name Z-A</a></li>
+                    <li><a class="dropdown-item" href="?sort=confidence&order=desc">Highest Confidence</a></li>
+                </ul>
+            </div>
+        </div>
+        
+        {% if reports %}
+            <div class="row">
+                {% for report in reports %}
+                <div class="col-lg-6 col-xl-4 mb-4">
+                    <div class="card report-card h-100 
+                        {% if report.microplastics_present and report.plankton_summary %}both-analyzed
+                        {% elif report.microplastics_present %}microplastic-detected
+                        {% elif report.plankton_summary %}plankton-analyzed{% endif %}">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h6 class="card-title mb-0">{{ report.slide_name }}</h6>
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown">
+                                        <i class="fas fa-ellipsis-v"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li><a class="dropdown-item" href="{{ url_for('results.results', report_id=report.id) }}">
+                                            <i class="fas fa-eye me-2"></i>View Details
+                                        </a></li>
+                                        <li><a class="dropdown-item" href="{{ url_for('reports.export_csv', report_id=report.id) }}">
+                                            <i class="fas fa-download me-2"></i>Export CSV
+                                        </a></li>
+                                        <li><a class="dropdown-item" href="{{ url_for('reports.export_pdf', report_id=report.id) }}">
+                                            <i class="fas fa-file-pdf me-2"></i>Export PDF
+                                        </a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><a class="dropdown-item text-danger" href="#" onclick="deleteReport({{ report.id }})">
+                                            <i class="fas fa-trash me-2"></i>Delete
+                                        </a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-2">
+                                <small class="text-muted">
+                                    <i class="fas fa-map-marker-alt me-1"></i>
+                                    {{ report.location }}
+                                </small>
+                            </div>
+                            
+                            <div class="mb-2">
+                                <small class="text-muted">
+                                    <i class="fas fa-user me-1"></i>
+                                    {{ report.user }}
+                                </small>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <small class="text-muted">
+                                    <i class="fas fa-clock me-1"></i>
+                                    {{ report.timestamp }}
+                                </small>
+                            </div>
+                            
+                            <!-- Analysis Results -->
+                            <div class="mb-3">
+                                {% if report.microplastics_present %}
+                                    <span class="badge bg-danger status-badge me-1">
+                                        <i class="fas fa-vial me-1"></i>
+                                        Microplastics: {{ report.particle_count }}
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-secondary status-badge me-1">
+                                        <i class="fas fa-vial me-1"></i>
+                                        No Microplastics
+                                    </span>
+                                {% endif %}
+                                
+                                {% if report.plankton_summary %}
+                                    <span class="badge bg-info status-badge">
+                                        <i class="fas fa-fish me-1"></i>
+                                        Plankton Detected
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-secondary status-badge">
+                                        <i class="fas fa-fish me-1"></i>
+                                        No Plankton
+                                    </span>
+                                {% endif %}
+                            </div>
+                            
+                            {% if report.confidence %}
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted">Confidence</small>
+                                    <small class="fw-bold">{{ "%.1f"|format(report.confidence * 100) }}%</small>
+                                </div>
+                                <div class="progress" style="height: 4px;">
+                                    <div class="progress-bar bg-success" style="width: 85%"></div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            <div class="d-flex justify-content-between align-items-center">
+                                <a href="{{ url_for('results.results', report_id=report.id) }}" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-eye me-1"></i>
+                                    View Report
+                                </a>
+                                <div class="text-muted">
+                                    <small>ID: {{ report.id }}</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <!-- Pagination -->
+            {% if pagination.total_pages > 1 %}
+            <nav aria-label="Reports pagination">
+                <ul class="pagination justify-content-center">
+                    {% if pagination.has_prev %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ pagination.page - 1 }}&per_page={{ pagination.per_page }}&search={{ filters.search }}&date_from={{ filters.date_from }}&date_to={{ filters.date_to }}">Previous</a>
+                        </li>
+                    {% endif %}
+                    
+                    {% for page_num in range(1, pagination.total_pages + 1) %}
+                        {% if page_num == pagination.page %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ page_num }}</span>
+                            </li>
+                        {% elif page_num <= 3 or page_num > pagination.total_pages - 3 or (page_num >= pagination.page - 1 and page_num <= pagination.page + 1) %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_num }}&per_page={{ pagination.per_page }}&search={{ filters.search }}&date_from={{ filters.date_from }}&date_to={{ filters.date_to }}">{{ page_num }}</a>
+                            </li>
+                        {% elif page_num == 4 or page_num == pagination.total_pages - 3 %}
+                            <li class="page-item disabled">
+                                <span class="page-link">...</span>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if pagination.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ pagination.page + 1 }}&per_page={{ pagination.per_page }}&search={{ filters.search }}&date_from={{ filters.date_from }}&date_to={{ filters.date_to }}">Next</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+            
+        {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
+                <h5 class="text-muted">No reports found</h5>
+                <p class="text-muted">
+                    {% if filters.search or filters.date_from or filters.date_to %}
+                        Try adjusting your filters or start a new analysis.
+                    {% else %}
+                        Start your first analysis to see reports here.
+                    {% endif %}
+                </p>
+                <a href="{{ url_for('capture.capture') }}" class="btn btn-primary">
+                    <i class="fas fa-camera me-2"></i>
+                    Start New Analysis
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete this report? This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDelete">Delete Report</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let reportToDelete = null;
+
+function deleteReport(reportId) {
+    reportToDelete = reportId;
+    const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    modal.show();
+}
+
+document.getElementById('confirmDelete').addEventListener('click', function() {
+    if (reportToDelete) {
+        // In a real implementation, you would make a DELETE request here
+        fetch(`/reports/${reportToDelete}`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Failed to delete report: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Delete error:', error);
+            alert('Failed to delete report');
+        });
+    }
+});
+
+function exportAll() {
+    // Implementation for exporting all reports
+    alert('Export all functionality would be implemented here');
+}
+
+function exportFiltered() {
+    // Implementation for exporting filtered reports
+    const form = document.getElementById('filterForm');
+    const formData = new FormData(form);
+    const params = new URLSearchParams(formData);
+    
+    // Add export parameter
+    params.append('export', 'csv');
+    
+    window.open(`{{ url_for('reports.reports') }}?${params.toString()}`, '_blank');
+}
+
+// Auto-submit form on search input change with debounce
+let searchTimeout;
+document.getElementById('search').addEventListener('input', function() {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        document.getElementById('filterForm').submit();
+    }, 500);
+});
+
+// Update filter form with current parameters
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    // Set form values from URL parameters
+    document.getElementById('search').value = urlParams.get('search') || '';
+    document.getElementById('date_from').value = urlParams.get('date_from') || '';
+    document.getElementById('date_to').value = urlParams.get('date_to') || '';
+});
+</script>
+{% endblock %}

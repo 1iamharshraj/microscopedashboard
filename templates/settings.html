@@ -1,0 +1,764 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - Microbe Insights{% endblock %}
+{% block page_title %}Settings{% endblock %}
+
+{% block extra_css %}
+<style>
+    .settings-tabs {
+        border-bottom: 1px solid #dee2e6;
+        margin-bottom: 2rem;
+    }
+    
+    .settings-tab {
+        padding: 1rem 1.5rem;
+        border: none;
+        background: none;
+        color: #6c757d;
+        border-bottom: 3px solid transparent;
+        transition: all 0.3s;
+        cursor: pointer;
+    }
+    
+    .settings-tab.active {
+        color: #007bff;
+        border-bottom-color: #007bff;
+    }
+    
+    .settings-tab:hover {
+        color: #007bff;
+    }
+    
+    .settings-section {
+        display: none;
+    }
+    
+    .settings-section.active {
+        display: block;
+    }
+    
+    .setting-item {
+        padding: 1.5rem 0;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .setting-item:last-child {
+        border-bottom: none;
+    }
+    
+    .setting-label {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+    
+    .setting-description {
+        font-size: 0.875rem;
+        color: #6c757d;
+        margin-bottom: 1rem;
+    }
+    
+    .slider-value {
+        display: inline-block;
+        min-width: 50px;
+        text-align: right;
+        font-weight: 600;
+    }
+    
+    .version-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.875rem;
+        background: #e9ecef;
+        color: #495057;
+    }
+    
+    .save-indicator {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        padding: 1rem 1.5rem;
+        background: #28a745;
+        color: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        display: none;
+        animation: slideIn 0.3s ease;
+    }
+    
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    .model-card {
+        border: 2px solid #dee2e6;
+        border-radius: 8px;
+        padding: 1rem;
+        transition: all 0.3s;
+        cursor: pointer;
+    }
+    
+    .model-card:hover {
+        border-color: #007bff;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    
+    .model-card.selected {
+        border-color: #007bff;
+        background: #e7f3ff;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Settings Tabs -->
+<div class="settings-tabs">
+    <div class="d-flex">
+        <button class="settings-tab active" data-section="camera" onclick="showSection('camera')">
+            <i class="fas fa-camera me-2"></i>
+            Camera
+        </button>
+        <button class="settings-tab" data-section="models" onclick="showSection('models')">
+            <i class="fas fa-brain me-2"></i>
+            AI Models
+        </button>
+        <button class="settings-tab" data-section="cloud" onclick="showSection('cloud')">
+            <i class="fas fa-cloud me-2"></i>
+            Cloud Sync
+        </button>
+        <button class="settings-tab" data-section="system" onclick="showSection('system')">
+            <i class="fas fa-cog me-2"></i>
+            System
+        </button>
+    </div>
+</div>
+
+<!-- Camera Settings -->
+<div class="settings-section active" id="camera">
+    <h4 class="mb-4">Camera Configuration</h4>
+    
+    <div class="card">
+        <div class="card-body">
+            <div class="setting-item">
+                <div class="setting-label">
+                    <i class="fas fa-expand me-2"></i>
+                    Resolution
+                </div>
+                <div class="setting-description">
+                    Set the camera capture resolution
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <label class="form-label">Width</label>
+                        <input type="number" class="form-control" id="cameraWidth" value="{{ settings.camera.resolution.width }}" min="640" max="1920">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Height</label>
+                        <input type="number" class="form-control" id="cameraHeight" value="{{ settings.camera.resolution.height }}" min="480" max="1080">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Preset</label>
+                        <select class="form-select" id="resolutionPreset" onchange="applyResolutionPreset()">
+                            <option value="">Custom</option>
+                            <option value="640x480">640×480 (VGA)</option>
+                            <option value="1280x720">1280×720 (HD)</option>
+                            <option value="1920x1080">1920×1080 (Full HD)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="setting-item">
+                <div class="setting-label">
+                    <i class="fas fa-video me-2"></i>
+                    Frame Rate
+                </div>
+                <div class="setting-description">
+                    Adjust the camera frame rate (FPS)
+                </div>
+                <div class="row align-items-center">
+                    <div class="col-md-10">
+                        <input type="range" class="form-range" id="fpsSlider" min="10" max="60" step="5" value="{{ settings.camera.fps }}" oninput="updateSliderValue('fps', this.value)">
+                    </div>
+                    <div class="col-md-2">
+                        <span class="slider-value" id="fpsValue">{{ settings.camera.fps }}</span> FPS
+                    </div>
+                </div>
+            </div>
+            
+            <div class="setting-item">
+                <div class="setting-label">
+                    <i class="fas fa-sun me-2"></i>
+                    Exposure
+                </div>
+                <div class="setting-description">
+                    Control camera exposure level
+                </div>
+                <div class="row align-items-center">
+                    <div class="col-md-10">
+                        <input type="range" class="form-range" id="exposureSlider" min="-10" max="10" value="{{ settings.camera.exposure }}" oninput="updateSliderValue('exposure', this.value)">
+                    </div>
+                    <div class="col-md-2">
+                        <span class="slider-value" id="exposureValue">{{ settings.camera.exposure }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="setting-item">
+                <div class="setting-label">
+                    <i class="fas fa-adjust me-2"></i>
+                    Brightness
+                </div>
+                <div class="setting-description">
+                    Adjust image brightness
+                </div>
+                <div class="row align-items-center">
+                    <div class="col-md-10">
+                        <input type="range" class="form-range" id="brightnessSlider" min="0" max="100" value="{{ settings.camera.brightness }}" oninput="updateSliderValue('brightness', this.value)">
+                    </div>
+                    <div class="col-md-2">
+                        <span class="slider-value" id="brightnessValue">{{ settings.camera.brightness }}</span>%
+                    </div>
+                </div>
+            </div>
+            
+            <div class="setting-item">
+                <div class="setting-label">
+                    <i class="fas fa-sliders-h me-2"></i>
+                    Contrast
+                </div>
+                <div class="setting-description">
+                    Adjust image contrast
+                </div>
+                <div class="row align-items-center">
+                    <div class="col-md-10">
+                        <input type="range" class="form-range" id="contrastSlider" min="0" max="100" value="{{ settings.camera.contrast }}" oninput="updateSliderValue('contrast', this.value)">
+                    </div>
+                    <div class="col-md-2">
+                        <span class="slider-value" id="contrastValue">{{ settings.camera.contrast }}</span>%
+                    </div>
+                </div>
+            </div>
+            
+            <div class="d-flex gap-2">
+                <button class="btn btn-primary" onclick="saveCameraSettings()">
+                    <i class="fas fa-save me-2"></i>
+                    Save Camera Settings
+                </button>
+                <button class="btn btn-outline-secondary" onclick="resetCameraSettings()">
+                    <i class="fas fa-undo me-2"></i>
+                    Reset to Default
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- AI Models Settings -->
+<div class="settings-section" id="models">
+    <h4 class="mb-4">AI Model Configuration</h4>
+    
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="setting-item">
+                <div class="setting-label">
+                    <i class="fas fa-vial me-2"></i>
+                    Microplastic Detection Model
+                </div>
+                <div class="setting-description">
+                    Select the version of the microplastic detection model
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="model-card {% if settings.models.microplastic_version == 'v1.0' %}selected{% endif %}" onclick="selectModel('microplastic', 'v1.0')">
+                            <h6>Version 1.0</h6>
+                            <span class="version-badge">Stable</span>
+                            <p class="small text-muted mt-2 mb-0">Standard detection model</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="model-card" onclick="selectModel('microplastic', 'v1.1')">
+                            <h6>Version 1.1</h6>
+                            <span class="version-badge">Beta</span>
+                            <p class="small text-muted mt-2 mb-0">Enhanced accuracy</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="model-card" onclick="selectModel('microplastic', 'v2.0')">
+                            <h6>Version 2.0</h6>
+                            <span class="version-badge">Experimental</span>
+                            <p class="small text-muted mt-2 mb-0">Latest features</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="setting-item">
+                <div class="setting-label">
+                    <i class="fas fa-fish me-2"></i>
+                    Plankton Classification Model
+                </div>
+                <div class="setting-description">
+                    Select the version of the plankton classification model
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="model-card {% if settings.models.plankton_version == 'v1.0' %}selected{% endif %}" onclick="selectModel('plankton', 'v1.0')">
+                            <h6>Version 1.0</h6>
+                            <span class="version-badge">Stable</span>
+                            <p class="small text-muted mt-2 mb-0">Standard classification</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="model-card" onclick="selectModel('plankton', 'v1.1')">
+                            <h6>Version 1.1</h6>
+                            <span class="version-badge">Beta</span>
+                            <p class="small text-muted mt-2 mb-0">More species supported</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="model-card" onclick="selectModel('plankton', 'v2.0')">
+                            <h6>Version 2.0</h6>
+                            <span class="version-badge">Experimental</span>
+                            <p class="small text-muted mt-2 mb-0">Advanced segmentation</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="setting-item">
+                <div class="setting-label">
+                    <i class="fas fa-percent me-2"></i>
+                    Confidence Threshold
+                </div>
+                <div class="setting-description">
+                    Set minimum confidence threshold for detections
+                </div>
+                <div class="row align-items-center">
+                    <div class="col-md-10">
+                        <input type="range" class="form-range" id="confidenceSlider" min="0" max="100" value="{{ (settings.models.confidence_threshold * 100)|int }}" oninput="updateSliderValue('confidence', this.value)">
+                    </div>
+                    <div class="col-md-2">
+                        <span class="slider-value" id="confidenceValue">{{ (settings.models.confidence_threshold * 100)|int }}</span>%
+                    </div>
+                </div>
+            </div>
+            
+            <div class="d-flex gap-2">
+                <button class="btn btn-primary" onclick="saveModelSettings()">
+                    <i class="fas fa-save me-2"></i>
+                    Save Model Settings
+                </button>
+                <button class="btn btn-outline-info" onclick="downloadModels()">
+                    <i class="fas fa-download me-2"></i>
+                    Download Latest Models
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cloud Sync Settings -->
+<div class="settings-section" id="cloud">
+    <h4 class="mb-4">Cloud Synchronization</h4>
+    
+    <div class="card">
+        <div class="card-body">
+            <div class="setting-item">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="setting-label">
+                            <i class="fas fa-cloud-upload-alt me-2"></i>
+                            Enable Cloud Sync
+                        </div>
+                        <div class="setting-description">
+                            Automatically sync data to cloud storage
+                        </div>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="cloudSyncEnabled" {% if settings.cloud.sync_enabled %}checked{% endif %}>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="setting-item">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="setting-label">
+                            <i class="fas fa-upload me-2"></i>
+                            Auto Upload
+                        </div>
+                        <div class="setting-description">
+                            Automatically upload new analyses to cloud
+                        </div>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="autoUpload" {% if settings.cloud.auto_upload %}checked{% endif %}>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="setting-item">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="setting-label">
+                            <i class="fas fa-compress me-2"></i>
+                            Compression
+                        </div>
+                        <div class="setting-description">
+                            Compress files before uploading
+                        </div>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="compression" {% if settings.cloud.compression %}checked{% endif %}>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="setting-item">
+                <div class="setting-label">
+                    <i class="fas fa-key me-2"></i>
+                    Cloud Provider
+                </div>
+                <div class="setting-description">
+                    Select your cloud storage provider
+                </div>
+                <select class="form-select" id="cloudProvider">
+                    <option value="">None</option>
+                    <option value="aws">Amazon S3</option>
+                    <option value="gcp">Google Cloud Storage</option>
+                    <option value="azure">Azure Blob Storage</option>
+                    <option value="dropbox">Dropbox</option>
+                </select>
+            </div>
+            
+            <div class="d-flex gap-2">
+                <button class="btn btn-primary" onclick="saveCloudSettings()">
+                    <i class="fas fa-save me-2"></i>
+                    Save Cloud Settings
+                </button>
+                <button class="btn btn-outline-success" onclick="testConnection()">
+                    <i class="fas fa-plug me-2"></i>
+                    Test Connection
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- System Settings -->
+<div class="settings-section" id="system">
+    <h4 class="mb-4">System Configuration</h4>
+    
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="setting-item">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="setting-label">
+                            <i class="fas fa-save me-2"></i>
+                            Auto-Save
+                        </div>
+                        <div class="setting-description">
+                            Automatically save analysis results
+                        </div>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="autoSave" {% if settings.system.auto_save %}checked{% endif %}>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="setting-item">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="setting-label">
+                            <i class="fas fa-database me-2"></i>
+                            Backup Enabled
+                        </div>
+                        <div class="setting-description">
+                            Create automatic backups of database
+                        </div>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="backupEnabled" {% if settings.system.backup_enabled %}checked{% endif %}>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="setting-item">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="setting-label">
+                            <i class="fas fa-bell me-2"></i>
+                            Notifications
+                        </div>
+                        <div class="setting-description">
+                            Show system notifications
+                        </div>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="notifications" {% if settings.system.notifications %}checked{% endif %}>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="d-flex gap-2">
+                <button class="btn btn-primary" onclick="saveSystemSettings()">
+                    <i class="fas fa-save me-2"></i>
+                    Save System Settings
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Danger Zone -->
+    <div class="card border-danger">
+        <div class="card-header bg-danger text-white">
+            <h6 class="mb-0">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                Danger Zone
+            </h6>
+        </div>
+        <div class="card-body">
+            <div class="setting-item">
+                <div class="setting-label text-danger">
+                    <i class="fas fa-redo me-2"></i>
+                    Reset All Settings
+                </div>
+                <div class="setting-description">
+                    Reset all settings to factory defaults
+                </div>
+                <button class="btn btn-outline-danger" onclick="resetAllSettings()">
+                    Reset to Defaults
+                </button>
+            </div>
+            
+            <div class="setting-item">
+                <div class="setting-label text-danger">
+                    <i class="fas fa-trash me-2"></i>
+                    Clear All Data
+                </div>
+                <div class="setting-description">
+                    Delete all analysis data and reports (cannot be undone)
+                </div>
+                <button class="btn btn-danger" onclick="clearAllData()">
+                    Clear All Data
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Save Indicator -->
+<div class="save-indicator" id="saveIndicator">
+    <i class="fas fa-check-circle me-2"></i>
+    Settings saved successfully!
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let selectedModels = {
+    microplastic: '{{ settings.models.microplastic_version }}',
+    plankton: '{{ settings.models.plankton_version }}'
+};
+
+function showSection(sectionName) {
+    // Hide all sections
+    document.querySelectorAll('.settings-section').forEach(section => {
+        section.classList.remove('active');
+    });
+    
+    // Show selected section
+    document.getElementById(sectionName).classList.add('active');
+    
+    // Update tab states
+    document.querySelectorAll('.settings-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    document.querySelector(`[data-section="${sectionName}"]`).classList.add('active');
+}
+
+function updateSliderValue(name, value) {
+    document.getElementById(`${name}Value`).textContent = value;
+}
+
+function applyResolutionPreset() {
+    const preset = document.getElementById('resolutionPreset').value;
+    if (preset) {
+        const [width, height] = preset.split('x');
+        document.getElementById('cameraWidth').value = width;
+        document.getElementById('cameraHeight').value = height;
+    }
+}
+
+function selectModel(type, version) {
+    selectedModels[type] = version;
+    
+    // Update UI
+    document.querySelectorAll(`#${type === 'microplastic' ? 'models' : 'models'} .model-card`).forEach(card => {
+        card.classList.remove('selected');
+    });
+    event.target.closest('.model-card').classList.add('selected');
+}
+
+function showSaveIndicator() {
+    const indicator = document.getElementById('saveIndicator');
+    indicator.style.display = 'block';
+    
+    setTimeout(() => {
+        indicator.style.display = 'none';
+    }, 3000);
+}
+
+function saveCameraSettings() {
+    const settings = {
+        width: parseInt(document.getElementById('cameraWidth').value),
+        height: parseInt(document.getElementById('cameraHeight').value),
+        fps: parseInt(document.getElementById('fpsSlider').value),
+        exposure: parseInt(document.getElementById('exposureSlider').value),
+        brightness: parseInt(document.getElementById('brightnessSlider').value),
+        contrast: parseInt(document.getElementById('contrastSlider').value)
+    };
+    
+    fetch('/settings/camera', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(settings)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSaveIndicator();
+        } else {
+            alert('Failed to save settings: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Save error:', error);
+        alert('Failed to save settings');
+    });
+}
+
+function saveModelSettings() {
+    const settings = {
+        microplastic_version: selectedModels.microplastic,
+        plankton_version: selectedModels.plankton,
+        confidence_threshold: parseInt(document.getElementById('confidenceSlider').value) / 100
+    };
+    
+    fetch('/settings/models', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(settings)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSaveIndicator();
+        } else {
+            alert('Failed to save settings: ' + data.error);
+        }
+    });
+}
+
+function saveCloudSettings() {
+    const settings = {
+        sync_enabled: document.getElementById('cloudSyncEnabled').checked,
+        auto_upload: document.getElementById('autoUpload').checked,
+        compression: document.getElementById('compression').checked
+    };
+    
+    fetch('/settings/cloud', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(settings)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSaveIndicator();
+        } else {
+            alert('Failed to save settings: ' + data.error);
+        }
+    });
+}
+
+function saveSystemSettings() {
+    const settings = {
+        auto_save: document.getElementById('autoSave').checked,
+        backup_enabled: document.getElementById('backupEnabled').checked,
+        notifications: document.getElementById('notifications').checked
+    };
+    
+    fetch('/settings/system', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(settings)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSaveIndicator();
+        } else {
+            alert('Failed to save settings: ' + data.error);
+        }
+    });
+}
+
+function resetCameraSettings() {
+    if (confirm('Reset camera settings to defaults?')) {
+        document.getElementById('cameraWidth').value = 1280;
+        document.getElementById('cameraHeight').value = 720;
+        document.getElementById('fpsSlider').value = 30;
+        document.getElementById('exposureSlider').value = 0;
+        document.getElementById('brightnessSlider').value = 50;
+        document.getElementById('contrastSlider').value = 50;
+        
+        updateSliderValue('fps', 30);
+        updateSliderValue('exposure', 0);
+        updateSliderValue('brightness', 50);
+        updateSliderValue('contrast', 50);
+    }
+}
+
+function resetAllSettings() {
+    if (confirm('Are you sure you want to reset ALL settings to defaults? This cannot be undone.')) {
+        fetch('/settings/reset', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Settings reset successfully. The page will reload.');
+                location.reload();
+            }
+        });
+    }
+}
+
+function clearAllData() {
+    if (confirm('⚠️ WARNING: This will delete ALL analysis data and reports permanently. This cannot be undone. Are you absolutely sure?')) {
+        if (confirm('Last chance! Type "DELETE" to confirm data deletion.')) {
+            alert('Data clearing functionality would be implemented here');
+        }
+    }
+}
+
+function downloadModels() {
+    alert('Model download functionality would be implemented here');
+}
+
+function testConnection() {
+    alert('Connection test functionality would be implemented here');
+}
+</script>
+{% endblock %}

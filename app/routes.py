@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, render_template, send_from_directory
+from flask import Blueprint, request, jsonify, render_template, send_from_directory, Response, make_response
 import os
 import json
 import base64
@@ -8,10 +8,13 @@ from werkzeug.utils import secure_filename
 from PIL import Image
 import io
 import numpy as np
+import cv2
+import time
 
 # Import models
 from app.models.microplastic_model import microplastic_model
 from app.models.plankton_model import plankton_model
+from app.camera import camera_manager
 
 bp = Blueprint('main', __name__)
 
@@ -339,6 +342,158 @@ def get_stats():
             'species_distribution': dict(species_dist),
             'microplastic_distribution': class_counts
         })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Camera and video streaming routes
+@bp.route('/camera/stream')
+def camera_stream():
+    """Live camera feed endpoint"""
+    def generate_frames():
+        while True:
+            frame = camera_manager.get_active_frame()
+            if frame is not None:
+                # Encode frame as JPEG
+                ret, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
+                if ret:
+                    frame_bytes = buffer.tobytes()
+                    yield (b'--frame\r\n'
+                           b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+            else:
+                time.sleep(0.1)
+    
+    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+@bp.route('/camera/snapshot')
+def camera_snapshot():
+    """Capture snapshot from camera"""
+    try:
+        frame = camera_manager.capture_snapshot()
+        if frame is not None:
+            # Encode as JPEG
+            ret, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 95])
+            if ret:
+                response = make_response(buffer.tobytes())
+                response.headers['Content-Type'] = 'image/jpeg'
+                response.headers['Content-Disposition'] = 'inline; filename=snapshot.jpg'
+                return response
+        
+        return jsonify({'error': 'Failed to capture snapshot'}), 500
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@bp.route('/camera/start', methods=['POST'])
+def start_camera():
+    """Start camera streaming"""
+    try:
+        data = request.get_json() or {}
+        camera_id = data.get('camera_id', 0)
+        camera_type = data.get('camera_type', 'usb')
+        width = data.get('width', 1280)
+        height = data.get('height', 720)
+        fps = data.get('fps', 30)
+        
+        # Add camera if not exists
+        if camera_id not in camera_manager.get_camera_list():
+            success = camera_manager.add_camera(
+                camera_id=camera_id,
+                camera_type=camera_type,
+                width=width,
+                height=height,
+                fps=fps
+            )
+            if not success:
+                return jsonify({'error': 'Failed to add camera'}), 500
+        
+        # Start camera
+        success = camera_manager.start_camera(camera_id)
+        if success:
+            return jsonify({
+                'success': True,
+                'message': f'Camera {camera_id} started',
+                'camera_info': camera_manager.get_camera_info(camera_id)
+            })
+        else:
+            return jsonify({'error': 'Failed to start camera'}), 500
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@bp.route('/camera/stop', methods=['POST'])
+def stop_camera():
+    """Stop camera streaming"""
+    try:
+        data = request.get_json() or {}
+        camera_id = data.get('camera_id')
+        
+        if camera_id is not None:
+            camera_manager.stop_camera(camera_id)
+            return jsonify({'success': True, 'message': f'Camera {camera_id} stopped'})
+        else:
+            camera_manager.stop_all_cameras()
+            return jsonify({'success': True, 'message': 'All cameras stopped'})
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@bp.route('/camera/info')
+def camera_info():
+    """Get camera information"""
+    try:
+        camera_list = camera_manager.get_camera_list()
+        info = {}
+        
+        for camera_id in camera_list:
+            info[camera_id] = camera_manager.get_camera_info(camera_id)
+        
+        return jsonify({
+            'cameras': info,
+            'active_camera': camera_manager.active_camera_id,
+            'available_cameras': camera_list
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@bp.route('/camera/capture', methods=['POST'])
+def capture_from_camera():
+    """Capture image from camera and run analysis"""
+    try:
+        data = request.get_json() or {}
+        analysis_type = data.get('type', 'microplastic')  # 'microplastic' or 'plankton'
+        
+        # Capture snapshot
+        frame = camera_manager.capture_snapshot()
+        if frame is None:
+            return jsonify({'error': 'No camera active or failed to capture'}), 400
+        
+        # Save temporary image
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"camera_{analysis_type}_{timestamp}.jpg"
+        image_path = os.path.join('uploads', filename)
+        
+        os.makedirs('uploads', exist_ok=True)
+        cv2.imwrite(image_path, frame)
+        
+        # Run analysis based on type
+        if analysis_type == 'microplastic':
+            result = microplastic_model.predict(image_path)
+            if result['success']:
+                save_microplastic_result(image_path, result['detections'], result['image_shape'])
+        elif analysis_type == 'plankton':
+            result = plankton_model.predict(image_path)
+            if result['success']:
+                classification = result['classification']
+                save_plankton_result(image_path, classification['species_name'], 
+                                   classification['confidence'], result['segmentation_mask'], 
+                                   result['image_shape'])
+        else:
+            return jsonify({'error': 'Invalid analysis type'}), 400
+        
+        result['image_path'] = image_path
+        return jsonify(result)
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500

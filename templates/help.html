@@ -1,0 +1,500 @@
+{% extends "base.html" %}
+
+{% block title %}Help - Microbe Insights{% endblock %}
+{% block page_title %}Help & Documentation{% endblock %}
+
+{% block extra_css %}
+<style>
+    .help-sidebar {
+        position: sticky;
+        top: 100px;
+        max-height: calc(100vh - 150px);
+        overflow-y: auto;
+    }
+    
+    .help-nav-link {
+        display: block;
+        padding: 0.5rem 1rem;
+        color: #6c757d;
+        text-decoration: none;
+        border-left: 3px solid transparent;
+        transition: all 0.3s;
+    }
+    
+    .help-nav-link:hover {
+        color: #007bff;
+        background: #f8f9fa;
+        border-left-color: #007bff;
+    }
+    
+    .help-nav-link.active {
+        color: #007bff;
+        background: #e7f3ff;
+        border-left-color: #007bff;
+        font-weight: 600;
+    }
+    
+    .help-section {
+        scroll-margin-top: 100px;
+        padding-top: 1rem;
+    }
+    
+    .help-content {
+        line-height: 1.8;
+    }
+    
+    .help-content h5 {
+        margin-top: 2rem;
+        margin-bottom: 1rem;
+        color: #007bff;
+    }
+    
+    .help-content h6 {
+        margin-top: 1.5rem;
+        margin-bottom: 0.75rem;
+        color: #495057;
+    }
+    
+    .help-content .step-item {
+        padding: 1rem;
+        margin: 1rem 0;
+        background: #f8f9fa;
+        border-left: 4px solid #007bff;
+        border-radius: 0 8px 8px 0;
+    }
+    
+    .help-content .contact-info {
+        background: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin: 1rem 0;
+    }
+    
+    .search-box {
+        margin-bottom: 2rem;
+    }
+    
+    .feedback-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+    }
+    
+    .accordion-button:not(.collapsed) {
+        background: #e7f3ff;
+        color: #007bff;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-3">
+        <!-- Help Sidebar Navigation -->
+        <div class="help-sidebar">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="mb-3">
+                        <i class="fas fa-book me-2"></i>
+                        Topics
+                    </h6>
+                    <nav>
+                        {% for section_key, section in help_sections.items() %}
+                        <a href="#{{ section_key }}" class="help-nav-link" onclick="navigateToSection('{{ section_key }}')">
+                            {{ section.title }}
+                        </a>
+                        {% endfor %}
+                    </nav>
+                </div>
+            </div>
+            
+            <!-- Quick Links -->
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h6 class="mb-3">
+                        <i class="fas fa-link me-2"></i>
+                        Quick Links
+                    </h6>
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('capture.capture') }}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-camera me-1"></i>
+                            Start Analysis
+                        </a>
+                        <a href="{{ url_for('chat.chat') }}" class="btn btn-outline-info btn-sm">
+                            <i class="fas fa-robot me-1"></i>
+                            AI Assistant
+                        </a>
+                        <a href="{{ url_for('settings.settings') }}" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-cog me-1"></i>
+                            Settings
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-9">
+        <!-- Search Box -->
+        <div class="search-box">
+            <div class="input-group input-group-lg">
+                <span class="input-group-text">
+                    <i class="fas fa-search"></i>
+                </span>
+                <input type="text" class="form-control" id="helpSearch" placeholder="Search documentation..." onkeyup="searchHelp()">
+            </div>
+            <div id="searchResults" class="mt-2"></div>
+        </div>
+        
+        <!-- Help Content -->
+        <div class="help-content">
+            {% for section_key, section in help_sections.items() %}
+            <div class="help-section" id="{{ section_key }}">
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h4 class="mb-3">{{ section.title }}</h4>
+                        {{ section.content|safe }}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- FAQ Accordion -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-question-circle me-2"></i>
+                    Frequently Asked Questions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="accordion" id="faqAccordion">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                                What types of samples can I analyze?
+                            </button>
+                        </h2>
+                        <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                Microbe Insights supports analysis of water samples, sediment samples, biological specimens, and environmental samples. The system can detect microplastics and classify various plankton species in microscopic images.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                                How accurate are the AI models?
+                            </button>
+                        </h2>
+                        <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                Our AI models achieve approximately 89-95% accuracy on microplastic detection and 82-92% accuracy on plankton classification, depending on image quality and sample conditions. Confidence scores are provided with each detection to help you assess reliability.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                                Can I export my analysis results?
+                            </button>
+                        </h2>
+                        <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                Yes! Analysis results can be exported in multiple formats including CSV, PDF, and JSON. You can export individual reports or bulk export filtered data from the Reports page.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">
+                                What camera types are supported?
+                            </button>
+                        </h2>
+                        <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                The system supports USB cameras, CSI cameras (for Jetson Nano), and IP cameras. You can configure camera settings in the Settings page to optimize image quality for your specific hardware.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq5">
+                                How do I backup my data?
+                            </button>
+                        </h2>
+                        <div id="faq5" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                Enable automatic backups in Settings > System. You can also manually export data or enable cloud sync to automatically backup your analyses to cloud storage providers like Amazon S3, Google Cloud Storage, or Azure.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq6">
+                                What should I do if detection results seem inaccurate?
+                            </button>
+                        </h2>
+                        <div id="faq6" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                Ensure proper lighting, focus, and image quality. Check camera settings and adjust exposure/brightness if needed. You can also adjust the confidence threshold in Settings > AI Models to filter out low-confidence detections. If issues persist, consult the Troubleshooting section or contact support.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Feedback Card -->
+        <div class="card feedback-card">
+            <div class="card-body">
+                <h5 class="mb-3">
+                    <i class="fas fa-comment-dots me-2"></i>
+                    Need More Help?
+                </h5>
+                <p class="mb-4">Can't find what you're looking for? Our AI assistant can help answer your questions, or you can contact our support team.</p>
+                <div class="row">
+                    <div class="col-md-6 mb-3 mb-md-0">
+                        <a href="{{ url_for('chat.chat') }}" class="btn btn-light w-100">
+                            <i class="fas fa-robot me-2"></i>
+                            Ask AI Assistant
+                        </a>
+                    </div>
+                    <div class="col-md-6">
+                        <button class="btn btn-outline-light w-100" data-bs-toggle="modal" data-bs-target="#feedbackModal">
+                            <i class="fas fa-envelope me-2"></i>
+                            Contact Support
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Video Tutorials -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-video me-2"></i>
+                    Video Tutorials
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <i class="fas fa-play-circle fa-3x text-primary mb-3"></i>
+                                <h6>Getting Started</h6>
+                                <p class="small text-muted">Learn the basics of Microbe Insights</p>
+                                <button class="btn btn-outline-primary btn-sm">Watch Tutorial</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <i class="fas fa-play-circle fa-3x text-success mb-3"></i>
+                                <h6>Capture Workflow</h6>
+                                <p class="small text-muted">Master the 7-step analysis process</p>
+                                <button class="btn btn-outline-success btn-sm">Watch Tutorial</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <i class="fas fa-play-circle fa-3x text-info mb-3"></i>
+                                <h6>Advanced Features</h6>
+                                <p class="small text-muted">Explore advanced capabilities</p>
+                                <button class="btn btn-outline-info btn-sm">Watch Tutorial</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Feedback Modal -->
+<div class="modal fade" id="feedbackModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-comment-dots me-2"></i>
+                    Contact Support
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="feedbackForm">
+                    <div class="mb-3">
+                        <label for="feedbackType" class="form-label">Type</label>
+                        <select class="form-select" id="feedbackType" required>
+                            <option value="">Select type...</option>
+                            <option value="question">Question</option>
+                            <option value="bug">Bug Report</option>
+                            <option value="feature">Feature Request</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="feedbackEmail" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="feedbackEmail" placeholder="your.email@example.com" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="feedbackMessage" class="form-label">Message</label>
+                        <textarea class="form-control" id="feedbackMessage" rows="5" placeholder="Describe your issue or question..." required></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitFeedback()">
+                    <i class="fas fa-paper-plane me-2"></i>
+                    Send Message
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Smooth scroll to section
+function navigateToSection(sectionId) {
+    const section = document.getElementById(sectionId);
+    if (section) {
+        section.scrollIntoView({ behavior: 'smooth' });
+        
+        // Update active state
+        document.querySelectorAll('.help-nav-link').forEach(link => {
+            link.classList.remove('active');
+        });
+        event.target.classList.add('active');
+    }
+}
+
+// Search functionality
+function searchHelp() {
+    const query = document.getElementById('helpSearch').value.toLowerCase();
+    const resultsDiv = document.getElementById('searchResults');
+    
+    if (query.length < 3) {
+        resultsDiv.innerHTML = '';
+        return;
+    }
+    
+    fetch(`/help/api/search?q=${encodeURIComponent(query)}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.results.length > 0) {
+                resultsDiv.innerHTML = `
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="mb-3">Search Results (${data.results.length})</h6>
+                            ${data.results.map(result => `
+                                <div class="mb-3">
+                                    <a href="#${result.section}" class="text-decoration-none" onclick="navigateToSection('${result.section}')">
+                                        <strong>${result.title}</strong>
+                                    </a>
+                                    <p class="small text-muted mb-0">${result.content}</p>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            } else {
+                resultsDiv.innerHTML = `
+                    <div class="card">
+                        <div class="card-body">
+                            <p class="text-muted mb-0">No results found for "${query}"</p>
+                        </div>
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Search error:', error);
+        });
+}
+
+// Submit feedback
+function submitFeedback() {
+    const type = document.getElementById('feedbackType').value;
+    const email = document.getElementById('feedbackEmail').value;
+    const message = document.getElementById('feedbackMessage').value;
+    
+    if (!type || !email || !message) {
+        alert('Please fill in all fields');
+        return;
+    }
+    
+    fetch('/help/api/feedback', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            type: type,
+            email: email,
+            message: message
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            document.getElementById('feedbackForm').reset();
+            bootstrap.Modal.getInstance(document.getElementById('feedbackModal')).hide();
+        } else {
+            alert('Failed to send message: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Feedback error:', error);
+        alert('Failed to send message');
+    });
+}
+
+// Highlight active section on scroll
+window.addEventListener('scroll', function() {
+    const sections = document.querySelectorAll('.help-section');
+    const navLinks = document.querySelectorAll('.help-nav-link');
+    
+    let current = '';
+    
+    sections.forEach(section => {
+        const sectionTop = section.offsetTop;
+        const sectionHeight = section.clientHeight;
+        
+        if (pageYOffset >= sectionTop - 150) {
+            current = section.getAttribute('id');
+        }
+    });
+    
+    navLinks.forEach(link => {
+        link.classList.remove('active');
+        if (link.getAttribute('href') === '#' + current) {
+            link.classList.add('active');
+        }
+    });
+});
+
+// Initialize first nav link as active
+document.addEventListener('DOMContentLoaded', function() {
+    const firstLink = document.querySelector('.help-nav-link');
+    if (firstLink) {
+        firstLink.classList.add('active');
+    }
+});
+</script>
+{% endblock %}

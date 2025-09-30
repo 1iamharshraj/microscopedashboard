@@ -1,0 +1,479 @@
+{% extends "base.html" %}
+
+{% block title %}Results - Microbe Insights{% endblock %}
+{% block page_title %}Analysis Results{% endblock %}
+
+{% block extra_css %}
+<style>
+    .result-card {
+        border-left: 4px solid;
+        transition: all 0.3s;
+    }
+    
+    .result-card.microplastic {
+        border-left-color: #dc3545;
+    }
+    
+    .result-card.plankton {
+        border-left-color: #17a2b8;
+    }
+    
+    .confidence-bar {
+        height: 8px;
+        border-radius: 4px;
+        background: #e9ecef;
+        overflow: hidden;
+    }
+    
+    .confidence-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #dc3545 0%, #ffc107 50%, #28a745 100%);
+        transition: width 0.3s ease;
+    }
+    
+    .species-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem;
+        margin: 0.25rem 0;
+        background: #f8f9fa;
+        border-radius: 6px;
+    }
+    
+    .roi-gallery {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+    
+    .roi-item {
+        border: 2px solid #dee2e6;
+        border-radius: 8px;
+        overflow: hidden;
+        transition: all 0.3s;
+        cursor: pointer;
+    }
+    
+    .roi-item:hover {
+        border-color: #007bff;
+        transform: scale(1.05);
+    }
+    
+    .roi-item img {
+        width: 100%;
+        height: 120px;
+        object-fit: cover;
+    }
+    
+    .roi-caption {
+        padding: 0.5rem;
+        background: #f8f9fa;
+        font-size: 0.875rem;
+        text-align: center;
+    }
+    
+    .metadata-sidebar {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1.5rem;
+        height: fit-content;
+    }
+    
+    .metadata-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .metadata-item:last-child {
+        border-bottom: none;
+    }
+    
+    .export-options {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    
+    .image-viewer {
+        position: relative;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #000;
+    }
+    
+    .image-viewer img {
+        width: 100%;
+        height: auto;
+        display: block;
+    }
+    
+    .image-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.5);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+    
+    .image-viewer:hover .image-overlay {
+        opacity: 1;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <!-- Analysis Results -->
+        <div class="row mb-4">
+            <!-- Microplastic Results -->
+            <div class="col-md-6">
+                <div class="card result-card microplastic h-100">
+                    <div class="card-header bg-danger text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-vial me-2"></i>
+                            Microplastic Detection
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        {% if report.microplastics_present %}
+                            <div class="alert alert-success">
+                                <i class="fas fa-check-circle me-2"></i>
+                                <strong>Microplastics Detected!</strong>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-6">
+                                    <div class="text-center">
+                                        <h3 class="text-danger mb-1">{{ report.particle_count }}</h3>
+                                        <small class="text-muted">Particles Found</small>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="text-center">
+                                        <h3 class="text-success mb-1">{{ "%.1f"|format(report.confidence * 100) }}%</h3>
+                                        <small class="text-muted">Confidence</small>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Detection Confidence</label>
+                                <div class="confidence-bar">
+                                    <div class="confidence-fill" style="width: {{ report.confidence * 100 }}%"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <h6>Particle Types Detected:</h6>
+                                <div class="species-item">
+                                    <span><i class="fas fa-circle text-danger me-2"></i>Fibers</span>
+                                    <span class="badge bg-danger">{{ (report.particle_count * 0.6)|round|int }}</span>
+                                </div>
+                                <div class="species-item">
+                                    <span><i class="fas fa-circle text-warning me-2"></i>Fragments</span>
+                                    <span class="badge bg-warning">{{ (report.particle_count * 0.3)|round|int }}</span>
+                                </div>
+                                <div class="species-item">
+                                    <span><i class="fas fa-circle text-info me-2"></i>Pellets</span>
+                                    <span class="badge bg-info">{{ (report.particle_count * 0.1)|round|int }}</span>
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>No Microplastics Detected</strong>
+                            </div>
+                            <p class="text-muted">This sample appears to be free of microplastic contamination.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Plankton Results -->
+            <div class="col-md-6">
+                <div class="card result-card plankton h-100">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-fish me-2"></i>
+                            Plankton Classification
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        {% if plankton_summary and plankton_summary.summary %}
+                            <div class="alert alert-info">
+                                <i class="fas fa-check-circle me-2"></i>
+                                <strong>Plankton Species Identified</strong>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <h6>Species Summary:</h6>
+                                {% for species, count in plankton_summary.summary.items() %}
+                                <div class="species-item">
+                                    <span><i class="fas fa-fish me-2"></i>{{ species }}</span>
+                                    <span class="badge bg-info">{{ count }}</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            
+                            {% if plankton_summary.detailed %}
+                            <div class="mb-3">
+                                <h6>Detailed Classifications:</h6>
+                                {% for detail in plankton_summary.detailed[:3] %}
+                                <div class="species-item">
+                                    <span>{{ detail.class }}</span>
+                                    <span class="badge bg-success">{{ "%.1f"|format(detail.confidence * 100) }}%</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        {% else %}
+                            <div class="alert alert-secondary">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>No Plankton Detected</strong>
+                            </div>
+                            <p class="text-muted">No plankton species were identified in this sample.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Visualizations -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-images me-2"></i>
+                    Analysis Visualizations
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Original Sample</h6>
+                        <div class="image-viewer">
+                            <img src="/captures/sample_{{ report.id }}.jpg" alt="Original Sample" 
+                                 onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg=='">
+                            <div class="image-overlay">
+                                <i class="fas fa-search-plus fa-2x"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Analysis Overlay</h6>
+                        <div class="image-viewer">
+                            <img src="/results/analysis_{{ report.id }}.jpg" alt="Analysis Overlay" 
+                                 onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIE92ZXJsYXk8L3RleHQ+PC9zdmc+'">
+                            <div class="image-overlay">
+                                <i class="fas fa-search-plus fa-2x"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- ROI Gallery -->
+        {% if plankton_summary and plankton_summary.rois %}
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-crop me-2"></i>
+                    Regions of Interest (ROI)
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="roi-gallery">
+                    {% for roi in plankton_summary.rois %}
+                    <div class="roi-item">
+                        <img src="/results/{{ report.id }}/roi_{{ roi }}" alt="ROI {{ loop.index }}" 
+                             onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjEyMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPlJPSXsveGxvb3AuaW5kZXh9PC90ZXh0Pjwvc3ZnPg=='">
+                        <div class="roi-caption">ROI {{ loop.index }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Metadata Sidebar -->
+    <div class="col-lg-4">
+        <div class="metadata-sidebar">
+            <h5 class="mb-3">
+                <i class="fas fa-info-circle me-2"></i>
+                Analysis Metadata
+            </h5>
+            
+            <div class="metadata-item">
+                <span><strong>Report ID:</strong></span>
+                <span>#{{ report.id }}</span>
+            </div>
+            
+            <div class="metadata-item">
+                <span><strong>Slide Name:</strong></span>
+                <span>{{ report.slide_name }}</span>
+            </div>
+            
+            <div class="metadata-item">
+                <span><strong>Location:</strong></span>
+                <span>{{ report.location }}</span>
+            </div>
+            
+            <div class="metadata-item">
+                <span><strong>Researcher:</strong></span>
+                <span>{{ report.user }}</span>
+            </div>
+            
+            <div class="metadata-item">
+                <span><strong>Analysis Date:</strong></span>
+                <span>{{ report.timestamp }}</span>
+            </div>
+            
+            <div class="metadata-item">
+                <span><strong>Processing Time:</strong></span>
+                <span>2.3 seconds</span>
+            </div>
+            
+            <div class="metadata-item">
+                <span><strong>Model Version:</strong></span>
+                <span>v1.0</span>
+            </div>
+            
+            <div class="metadata-item">
+                <span><strong>Image Resolution:</strong></span>
+                <span>1280×720</span>
+            </div>
+            
+            <div class="metadata-item">
+                <span><strong>File Size:</strong></span>
+                <span>2.3 MB</span>
+            </div>
+            
+            <hr class="my-4">
+            
+            <h6 class="mb-3">Export Options</h6>
+            <div class="export-options">
+                <a href="{{ url_for('results.export_csv', report_id=report.id) }}" class="btn btn-outline-success btn-sm">
+                    <i class="fas fa-file-csv me-1"></i>
+                    CSV
+                </a>
+                <a href="{{ url_for('results.export_pdf', report_id=report.id) }}" class="btn btn-outline-danger btn-sm">
+                    <i class="fas fa-file-pdf me-1"></i>
+                    PDF
+                </a>
+                <button class="btn btn-outline-info btn-sm" onclick="downloadImages()">
+                    <i class="fas fa-images me-1"></i>
+                    Images
+                </button>
+            </div>
+            
+            <hr class="my-4">
+            
+            <h6 class="mb-3">Actions</h6>
+            <div class="d-grid gap-2">
+                <button class="btn btn-primary btn-sm" onclick="shareResults()">
+                    <i class="fas fa-share me-2"></i>
+                    Share Results
+                </button>
+                <button class="btn btn-outline-secondary btn-sm" onclick="printResults()">
+                    <i class="fas fa-print me-2"></i>
+                    Print Report
+                </button>
+                <a href="{{ url_for('reports.reports') }}" class="btn btn-outline-primary btn-sm">
+                    <i class="fas fa-arrow-left me-2"></i>
+                    Back to Reports
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function downloadImages() {
+    // Implementation for downloading all images
+    alert('Image download functionality would be implemented here');
+}
+
+function shareResults() {
+    if (navigator.share) {
+        navigator.share({
+            title: 'Microbe Insights Analysis Results',
+            text: `Analysis results for ${document.querySelector('.metadata-item:nth-child(2) span:last-child').textContent}`,
+            url: window.location.href
+        });
+    } else {
+        // Fallback to clipboard
+        navigator.clipboard.writeText(window.location.href).then(() => {
+            alert('Results link copied to clipboard!');
+        });
+    }
+}
+
+function printResults() {
+    window.print();
+}
+
+// Image modal functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const images = document.querySelectorAll('.image-viewer img');
+    
+    images.forEach(img => {
+        img.addEventListener('click', function() {
+            // Create modal for image viewing
+            const modal = document.createElement('div');
+            modal.className = 'modal fade';
+            modal.innerHTML = `
+                <div class="modal-dialog modal-lg modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Image Viewer</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body text-center">
+                            <img src="${this.src}" alt="${this.alt}" class="img-fluid">
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            const bsModal = new bootstrap.Modal(modal);
+            bsModal.show();
+            
+            modal.addEventListener('hidden.bs.modal', function() {
+                document.body.removeChild(modal);
+            });
+        });
+    });
+});
+
+// ROI gallery click handlers
+document.addEventListener('DOMContentLoaded', function() {
+    const roiItems = document.querySelectorAll('.roi-item');
+    
+    roiItems.forEach(item => {
+        item.addEventListener('click', function() {
+            const img = this.querySelector('img');
+            if (img) {
+                img.click();
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

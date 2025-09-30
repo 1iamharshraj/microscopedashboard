@@ -140,10 +140,57 @@
                                 <i class="fas fa-vial me-2"></i>
                                 Run Microplastic Detection
                             </button>
-                            <button class="btn btn-info w-100" id="analyzePlankton" disabled>
+                            <button class="btn btn-info w-100 mb-2" id="analyzePlankton" disabled>
                                 <i class="fas fa-fish me-2"></i>
                                 Run Plankton Analysis
                             </button>
+                        </div>
+
+                        <!-- Camera Controls -->
+                        <div class="mt-3 border-top pt-3">
+                            <h6 class="text-primary">
+                                <i class="fas fa-video me-2"></i>
+                                Live Camera
+                            </h6>
+                            
+                            <div class="mb-2">
+                                <select class="form-select form-select-sm" id="cameraType">
+                                    <option value="usb">USB Camera</option>
+                                    <option value="csi">CSI Camera (Jetson)</option>
+                                    <option value="ip">IP Camera</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-2">
+                                <input type="number" class="form-control form-control-sm" id="cameraId" 
+                                       placeholder="Camera ID (0, 1, 2...)" value="0" min="0">
+                            </div>
+                            
+                            <div class="btn-group w-100 mb-2" role="group">
+                                <button class="btn btn-primary btn-sm" id="startCamera">
+                                    <i class="fas fa-play me-1"></i>
+                                    Start
+                                </button>
+                                <button class="btn btn-secondary btn-sm" id="stopCamera">
+                                    <i class="fas fa-stop me-1"></i>
+                                    Stop
+                                </button>
+                                <button class="btn btn-warning btn-sm" id="captureSnapshot">
+                                    <i class="fas fa-camera me-1"></i>
+                                    Snapshot
+                                </button>
+                            </div>
+                            
+                            <div class="btn-group w-100" role="group">
+                                <button class="btn btn-success btn-sm" id="captureMicroplastic" disabled>
+                                    <i class="fas fa-vial me-1"></i>
+                                    Capture & Analyze Microplastic
+                                </button>
+                                <button class="btn btn-info btn-sm" id="capturePlankton" disabled>
+                                    <i class="fas fa-fish me-1"></i>
+                                    Capture & Analyze Plankton
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -151,6 +198,28 @@
 
             <!-- Results Section -->
             <div class="col-lg-8">
+                <!-- Live Camera Feed -->
+                <div class="card mb-3" id="cameraCard" style="display: none;">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="fas fa-video me-2"></i>
+                            Live Camera Feed
+                            <span class="badge bg-success ms-2" id="cameraStatus">Active</span>
+                        </h6>
+                    </div>
+                    <div class="card-body p-2">
+                        <div class="text-center">
+                            <img id="liveCameraFeed" src="" alt="Live Camera Feed" 
+                                 style="max-width: 100%; height: auto; border-radius: 8px; display: none;">
+                            <div id="cameraPlaceholder" class="text-muted">
+                                <i class="fas fa-video fa-3x mb-3"></i>
+                                <p>Start camera to see live feed</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Analysis Results -->
                 <div class="card">
                     <div class="card-header">
                         <h5 class="mb-0">
@@ -192,6 +261,21 @@
         const analyzePlankton = document.getElementById('analyzePlankton');
         const resultsContainer = document.getElementById('resultsContainer');
         const loading = document.querySelector('.loading');
+        
+        // Camera elements
+        const cameraCard = document.getElementById('cameraCard');
+        const liveCameraFeed = document.getElementById('liveCameraFeed');
+        const cameraPlaceholder = document.getElementById('cameraPlaceholder');
+        const cameraStatus = document.getElementById('cameraStatus');
+        const startCamera = document.getElementById('startCamera');
+        const stopCamera = document.getElementById('stopCamera');
+        const captureSnapshot = document.getElementById('captureSnapshot');
+        const captureMicroplastic = document.getElementById('captureMicroplastic');
+        const capturePlankton = document.getElementById('capturePlankton');
+        const cameraType = document.getElementById('cameraType');
+        const cameraId = document.getElementById('cameraId');
+        
+        let cameraActive = false;
 
         // Upload area click handler
         uploadArea.addEventListener('click', () => imageInput.click());
@@ -403,6 +487,144 @@
             }
         }
 
+        // Camera control functions
+        async function startCameraStream() {
+            try {
+                const response = await fetch('/camera/start', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        camera_id: parseInt(cameraId.value),
+                        camera_type: cameraType.value,
+                        width: 1280,
+                        height: 720,
+                        fps: 30
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    cameraActive = true;
+                    cameraCard.style.display = 'block';
+                    liveCameraFeed.style.display = 'block';
+                    cameraPlaceholder.style.display = 'none';
+                    cameraStatus.textContent = 'Active';
+                    cameraStatus.className = 'badge bg-success ms-2';
+                    
+                    // Start live feed
+                    liveCameraFeed.src = '/camera/stream';
+                    
+                    // Enable capture buttons
+                    captureMicroplastic.disabled = false;
+                    capturePlankton.disabled = false;
+                    
+                    console.log('Camera started:', data.camera_info);
+                } else {
+                    alert('Failed to start camera: ' + (data.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Camera start error:', error);
+                alert('Failed to start camera: ' + error.message);
+            }
+        }
+        
+        async function stopCameraStream() {
+            try {
+                const response = await fetch('/camera/stop', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        camera_id: parseInt(cameraId.value)
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    cameraActive = false;
+                    cameraCard.style.display = 'none';
+                    liveCameraFeed.style.display = 'none';
+                    cameraPlaceholder.style.display = 'block';
+                    cameraStatus.textContent = 'Stopped';
+                    cameraStatus.className = 'badge bg-secondary ms-2';
+                    
+                    // Stop live feed
+                    liveCameraFeed.src = '';
+                    
+                    // Disable capture buttons
+                    captureMicroplastic.disabled = true;
+                    capturePlankton.disabled = true;
+                    
+                    console.log('Camera stopped');
+                }
+            } catch (error) {
+                console.error('Camera stop error:', error);
+            }
+        }
+        
+        async function captureCameraSnapshot() {
+            try {
+                const response = await fetch('/camera/snapshot');
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = URL.createObjectURL(blob);
+                    
+                    // Update preview image
+                    previewImage.src = url;
+                    previewImage.style.display = 'block';
+                    
+                    // Enable analysis buttons
+                    analyzeMicroplastic.disabled = false;
+                    analyzePlankton.disabled = false;
+                    
+                    console.log('Snapshot captured');
+                } else {
+                    alert('Failed to capture snapshot');
+                }
+            } catch (error) {
+                console.error('Snapshot error:', error);
+                alert('Failed to capture snapshot: ' + error.message);
+            }
+        }
+        
+        async function captureAndAnalyze(type) {
+            try {
+                const response = await fetch('/camera/capture', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        type: type
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayResults(type, data);
+                    updateStats();
+                } else {
+                    displayError(data.error || 'Analysis failed');
+                }
+            } catch (error) {
+                console.error('Capture and analyze error:', error);
+                displayError('Failed to capture and analyze: ' + error.message);
+            }
+        }
+        
+        // Camera event listeners
+        startCamera.addEventListener('click', startCameraStream);
+        stopCamera.addEventListener('click', stopCameraStream);
+        captureSnapshot.addEventListener('click', captureCameraSnapshot);
+        captureMicroplastic.addEventListener('click', () => captureAndAnalyze('microplastic'));
+        capturePlankton.addEventListener('click', () => captureAndAnalyze('plankton'));
+        
         // Load initial stats
         updateStats();
     </script>
